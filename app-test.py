@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import questions_survey as questions
-import streamlit_authenticator as stauth
 import plotly.express as px
 
 
