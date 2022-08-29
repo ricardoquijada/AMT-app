@@ -74,9 +74,9 @@ Verification, Overview = st.tabs(["Verification", "Overview"])
 with Verification:
     code_86 = st.text_input("Code 86")
     if code_86 in full_df["Code 86"].tolist():
-        st.write("Complete")
+        st.success('Complete')
     else:
-        st.write("Pending to survey")
+        st.warning("Pending to survey")
 with Overview:
     total_surveys = total(skill_selected)
     st.write(f"  ###  🎯 Total Surveys - {skill_selected}: {total_surveys}")
