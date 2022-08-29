@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objs as go
 
 
-@st.cache(allow_output_mutation=False)
+@st.cache(allow_output_mutation=True)
 def read_sheets(sheet_id):
     df = pd.read_csv(
         f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
@@ -70,43 +70,65 @@ list_columns = answer_df.columns.to_list()
 # ---- Header ----
 st.image("./img/aeroman7371.jpg", width=250)
 st.write("# AMT Subskill Overview")
-total_surveys = total(skill_selected)
-st.write(f"  ###  🎯 Total Surveys - {skill_selected}: {total_surveys}")
-st.progress(total_surveys/total_per_skill[skill_selected])
-st.write(
-    f"#### {round((total_surveys/total_per_skill[skill_selected])*100,1)} %")
-col1, col2, col3 = st.columns(3)
-x = answer_df.value_counts(["Skill", "Business Unit"])
-with col1:
-    if skill_selected == "All":
-        count_1 = answer_df.value_counts(["Business Unit"])["U1"][0]
+Verification, Overview = st.tabs(["Verification", "Overview"])
+with Verification:
+    code_86 = st.text_input("Code 86")
+    if code_86 in full_df["Code 86"].tolist():
+        st.write("Complete")
     else:
-        count_1 = x[skill_selected]["U1"]
-    st.header(f"U1: {count_1}")
+        st.write("Pending to survey")
+with Overview:
+    total_surveys = total(skill_selected)
+    st.write(f"  ###  🎯 Total Surveys - {skill_selected}: {total_surveys}")
+    st.progress(total_surveys/total_per_skill[skill_selected])
+    st.write(
+        f"#### {round((total_surveys/total_per_skill[skill_selected])*100,1)} %")
+    col1, col2, col3 = st.columns(3)
+    x = answer_df.value_counts(["Skill", "Business Unit"])
+    with col1:
+        if skill_selected == "All":
+            count_1 = answer_df.value_counts(["Business Unit"])["U1"][0]
+        else:
+            count_1 = x[skill_selected]["U1"]
+        st.header(f"U1: {count_1}")
 
-with col2:
+    with col2:
+        if skill_selected == "All":
+            count_2 = answer_df.value_counts(["Business Unit"])["U2"][0]
+        else:
+            count_2 = x[skill_selected]["U2"]
+        st.header(f"U2 : {count_2}")
+    with col3:
+        if skill_selected == "All":
+            count_3 = answer_df.value_counts(["Business Unit"])["U3"][0]
+        else:
+            count_3 = x[skill_selected]["U3"]
+        st.header(f"U3: {count_3}")
+    if skill_selected != "All":
+        cols_used = skill_columns(skill_selected)
+        data_filtered = answer_df[cols_used][(answer_df["Skill"] == skill_selected) & (
+            answer_df["Business Unit"] == bu_selected)]
+        st.dataframe(data_filtered)
+        skill_set = data_filtered.groupby("Current Role").count()
+        fig = go.Figure(
+            data=go.Bar(x=answer_df["Current Role"].unique(
+            ), y=skill_set["Code 86"]), layout_yaxis_range=[0, 90], layout=go.Layout(
+                title=go.layout.Title(text=f"Current Role - {skill_selected}")))
+        st.plotly_chart(fig)
     if skill_selected == "All":
-        count_2 = answer_df.value_counts(["Business Unit"])["U2"][0]
-    else:
-        count_2 = x[skill_selected]["U2"]
-    st.header(f"U2 : {count_2}")
-with col3:
-    if skill_selected == "All":
-        count_3 = answer_df.value_counts(["Business Unit"])["U3"][0]
-    else:
-        count_3 = x[skill_selected]["U3"]
-    st.header(f"U3: {count_3}")
-if skill_selected != "All":
-    cols_used = skill_columns(skill_selected)
-    data_filtered = answer_df[cols_used][(answer_df["Skill"] == skill_selected) & (
-        answer_df["Business Unit"] == bu_selected)]
-    st.dataframe(data_filtered)
-    skill_set = data_filtered.groupby("Current Role").count()
-    fig = go.Figure(
-        data=go.Bar(x=answer_df["Current Role"].unique(
-        ), y=skill_set["Code 86"]), layout_yaxis_range=[0, 90], layout=go.Layout(
-            title=go.layout.Title(text=f"Current Role - {skill_selected}")))
-    st.plotly_chart(fig)
-if skill_selected == "All":
-    st.dataframe(answer_df)
-    skill_set = answer_df.groupby("Skill").count()
+        st.dataframe(answer_df)
+        skill_set = answer_df.groupby("Skill").count()
+        x = answer_df.groupby("Business Unit").count()
+        BU_fig = px.pie(x, values="E-mail", names=x.index, color=x.index, color_discrete_map={
+            "U1": "darkblue",
+            "U2": "royalblue",
+            "U3": "lightcyan"}, title="Business Unit Distribution", hole=0.3)
+        st.plotly_chart(BU_fig)
+        x = answer_df.groupby("Current Role").count()
+        Role_fig = px.pie(x, values="E-mail", names=x.index, color=x.index,
+                          color_discrete_sequence=px.colors.sequential.RdBu, title="Current Role Distribution", hole=0.3)
+        st.plotly_chart(Role_fig)
+        x = answer_df.groupby("VISA").count()
+        Visa_fig = px.pie(x, values="E-mail", names=x.index, color=x.index,
+                          color_discrete_sequence=px.colors.sequential.RdBu, title="VISA", hole=0.3)
+        st.plotly_chart(Visa_fig)
