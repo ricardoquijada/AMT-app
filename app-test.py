@@ -1,11 +1,11 @@
+from asyncore import read
 import streamlit as st
 import pandas as pd
-import questions_survey as questions
-import streamlit_authenticator as stauth
 import plotly.express as px
+import plotly.graph_objs as go
 
 
-@st.cache
+@st.cache(allow_output_mutation=False)
 def read_sheets(sheet_id):
     df = pd.read_csv(
         f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
@@ -13,9 +13,23 @@ def read_sheets(sheet_id):
     return df
 
 
-@st.cache
-def convert_csv(data):
-    return data.to_csv(data).encode("utf-8")
+def skill_columns(skill):
+    list_columns = answer_df.columns.to_list()
+    general_info = list_columns[1:9]
+    cols_to_use = general_info
+    if skill == "Systems":
+        cols_to_use.extend(list_columns[10:22])
+        cols_to_use.extend(list_columns[24:40])
+    if skill == "Avionics":
+        cols_to_use.extend(list_columns[41:53])
+        cols_to_use.extend(list_columns[55:66])
+    if skill == "Structures":
+        cols_to_use.extend(list_columns[67:73])
+        cols_to_use.extend(list_columns[75:89])
+    if skill == "Interiors":
+        cols_to_use.extend(list_columns[90:111])
+        cols_to_use.extend(list_columns[113:125])
+    return cols_to_use
 
 
 def total(skill):
@@ -29,7 +43,17 @@ def total(skill):
 
 answer_sheet = "1Uwhn3yj7SfCRJO1LACrOJ30Q6zDraV4BhUK6i6U2DPw"
 answer_df = read_sheets(answer_sheet)
+database_sheet = "1I4kLvXgBiSm2Mq_p0hZ2Dv0SLCl9yBGPU-zYyil4QJo"
+full_df = read_sheets(database_sheet)
 
+# ----- Sidebar Selection ------
+total_per_skill = {
+    "Systems": full_df[(full_df["SKILL"] == "SYS")].shape[0],
+    "Interiors": full_df[(full_df["SKILL"] == "INT")].shape[0],
+    "Structures": full_df[(full_df["SKILL"] == "STR")].shape[0],
+    "Avionics": full_df[(full_df["SKILL"] == "AVI")].shape[0],
+    "All": full_df.shape[0]
+}
 subskill = {
     "All": [],
     "Systems": ["Engines", "Flight Control", "Packs", "Landing Gear", "Fuel Tanks"],
@@ -41,11 +65,16 @@ skill_selected = st.sidebar.selectbox(
     "Skill", ["All", "Systems", "Avionics", "Structures", "Interiors"])
 bu_selected = st.sidebar.selectbox("Business Unit", ["U1", "U2", "U3"])
 subskill_selected = st.sidebar.selectbox("Subskill", subskill[skill_selected])
+list_columns = answer_df.columns.to_list()
+
 # ---- Header ----
 st.image("./img/aeroman7371.jpg", width=250)
 st.write("# AMT Subskill Overview")
 total_surveys = total(skill_selected)
-st.write(f"  ###  🎯 Total Surveys: {total_surveys}")
+st.write(f"  ###  🎯 Total Surveys - {skill_selected}: {total_surveys}")
+st.progress(total_surveys/total_per_skill[skill_selected])
+st.write(
+    f"#### {round((total_surveys/total_per_skill[skill_selected])*100,1)} %")
 col1, col2, col3 = st.columns(3)
 x = answer_df.value_counts(["Skill", "Business Unit"])
 with col1:
@@ -68,8 +97,16 @@ with col3:
         count_3 = x[skill_selected]["U3"]
     st.header(f"U3: {count_3}")
 if skill_selected != "All":
-    data_filtered = answer_df[(answer_df["Skill"] == skill_selected) & (
+    cols_used = skill_columns(skill_selected)
+    data_filtered = answer_df[cols_used][(answer_df["Skill"] == skill_selected) & (
         answer_df["Business Unit"] == bu_selected)]
     st.dataframe(data_filtered)
+    skill_set = data_filtered.groupby("Current Role").count()
+    fig = go.Figure(
+        data=go.Bar(x=answer_df["Current Role"].unique(
+        ), y=skill_set["Code 86"]), layout_yaxis_range=[0, 90], layout=go.Layout(
+            title=go.layout.Title(text=f"Current Role - {skill_selected}")))
+    st.plotly_chart(fig)
 if skill_selected == "All":
     st.dataframe(answer_df)
+    skill_set = answer_df.groupby("Skill").count()
