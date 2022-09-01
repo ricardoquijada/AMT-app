@@ -124,20 +124,20 @@ with Overview:
     x = answer_df.value_counts(["Skill", "Business Unit"])
     with col1:
         if skill_selected == "All":
-            count_1 = answer_df.value_counts(["Business Unit"])["U1"]
+            count_1 = int(answer_df.value_counts(["Business Unit"])["U1"])
         else:
             count_1 = x[skill_selected]["U1"]
         st.header(f"U1: {count_1}")
 
     with col2:
         if skill_selected == "All":
-            count_2 = answer_df.value_counts(["Business Unit"])["U2"]
+            count_2 = int(answer_df.value_counts(["Business Unit"])["U2"])
         else:
             count_2 = x[skill_selected]["U2"]
         st.header(f"U2 : {count_2}")
     with col3:
         if skill_selected == "All":
-            count_3 = answer_df.value_counts(["Business Unit"])["U3"]
+            count_3 = int(answer_df.value_counts(["Business Unit"])["U3"])
         else:
             count_3 = x[skill_selected]["U3"]
         st.header(f"U3: {count_3}")
