@@ -4,8 +4,19 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
 
+# CSS to inject contained in a string
+hide_table_row_index = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            </style>
+            """
 
-@st.cache(allow_output_mutation=True)
+# Inject CSS with Markdown
+st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+
+@st.experimental_memo
 def read_sheets(sheet_id):
     df = pd.read_csv(
         f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv")
@@ -65,13 +76,24 @@ def profile_sheet(code):
     phone = str(data["Phone number"].to_list()[0])
     academic_level = data["Academic level"].to_list()[0]
     visa = data["VISA"].to_list()[0]
+    bu = data["Business Unit"].tolist()[0]
     cols_used = skill_columns(skill)
     st.write("## 👓 General Information")
     general_info = {
-        "Field": ["Name", "E-mail", "Current Role", "Skill", "Phone Number", "Academic Level", "Visa"],
-        "Description": [name, email, role, skill, phone, academic_level, visa]
+        "Field": ["Name", "E-mail", "Business Unit", "Phone Number", "Academic Level", "Visa"],
+        "Description": [name, email, bu, phone, academic_level, visa]
     }
     st.table(general_info)
+    st.write("## Technical Info")
+    technical_table = {
+        "Skill": [skill],
+        "Business Unit": [bu],
+        "Current Role": [role]
+    }
+
+
+# Display a static table
+    st.table(technical_table)
     technical_df = answer_df[cols_used][(
         answer_df["Code 86"] == code)]
     technical_info = {
@@ -88,10 +110,10 @@ full_df = read_sheets(database_sheet)
 
 # ----- Sidebar Selection ------
 total_per_skill = {
-    "Systems": full_df[(full_df["SKILL"] == "SYS")].shape[0],
-    "Interiors": full_df[(full_df["SKILL"] == "INT")].shape[0],
-    "Structures": full_df[(full_df["SKILL"] == "STR")].shape[0],
-    "Avionics": full_df[(full_df["SKILL"] == "AVI")].shape[0],
+    "Systems": full_df[(full_df["F SKILL"] == "Systems")].shape[0],
+    "Interiors": full_df[(full_df["F SKILL"] == "Interiors")].shape[0],
+    "Structures": full_df[(full_df["F SKILL"] == "Structures")].shape[0],
+    "Avionics": full_df[(full_df["F SKILL"] == "Avionics")].shape[0],
     "All": full_df.shape[0]
 }
 subskill = {
@@ -112,10 +134,15 @@ st.image("./img/aeroman7371.jpg", width=250)
 st.write("# AMT Subskill Overview")
 Overview, Profile, Verification = st.tabs(
     ["Overview", "Profile", "Verification"])
+
 # ------ Tab Distribution -------
 
 with Overview:
     total_surveys = total(skill_selected)
+    button = st.button("Reload data")
+    if button:
+        read_sheets.clear()
+        st.experimental_rerun()
     st.write(f"  ###  🎯 Total Surveys - {skill_selected}: {total_surveys}")
     st.progress(total_surveys/total_per_skill[skill_selected])
     st.write(
@@ -141,6 +168,7 @@ with Overview:
         else:
             count_3 = x[skill_selected]["U3"]
         st.header(f"U3: {count_3}")
+
     if skill_selected != "All":
         cols_used = skill_columns(skill_selected)
         data_filtered = answer_df[cols_used][(answer_df["Skill"] == skill_selected) & (
